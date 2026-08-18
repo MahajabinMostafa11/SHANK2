@@ -121,6 +121,7 @@ FORCE=0          # opt-out of the "already adopted -> abort" advisory
 TARGET=""
 AGENT="claude-code"
 FEATURES=""
+MONDO_ID=""
 GITHUB_WIKI=0    # opt-in to the GitHub Wiki bootstrap dance (Phase 2B sub-step)
 
 usage() {
@@ -151,6 +152,8 @@ Options:
                      mode against a host that already has the pattern.
   --agent=NAME       claude-code | none | cursor (cursor: not yet supported)
   --features=LIST    Comma-separated feature names (parsed but not installed)
+  --mondo=ID         MONDO disease ontology id for this project's subject;
+                     threaded through to wiki/init-wiki.sh --mondo
   --github-wiki      Bootstrap the host's GitHub Wiki backend before init-wiki
                      runs: enable Wikis on the project repo via gh api (best
                      effort) and push a seed Home.md so <repo>.wiki.git
@@ -181,6 +184,8 @@ while [[ $# -gt 0 ]]; do
         --agent)              AGENT="${2:-}"; shift 2 ;;
         --features=*)         FEATURES="${1#*=}"; shift ;;
         --features)           FEATURES="${2:-}"; shift 2 ;;
+        --mondo=*)            MONDO_ID="${1#*=}"; shift ;;
+        --mondo)              MONDO_ID="${2:-}"; shift 2 ;;
         --github-wiki)        GITHUB_WIKI=1; shift ;;
         *)                    lw_die "unknown argument: $1" ;;
     esac
@@ -636,7 +641,7 @@ elif [[ -f "$TARGET/wiki/init-wiki.sh" ]]; then
     # succeeded OR the wiki was already materialized upstream. On any
     # failure path the args stay bare and init-wiki falls back to local
     # init (current behaviour, fully backward compatible).
-    init_wiki_args=(--repo-name "$PROJECT_NAME")
+    init_wiki_args=(--repo-name "$PROJECT_NAME" --mondo "$MONDO_ID")
 
     if [[ "$GITHUB_WIKI" -eq 1 ]]; then
         _origin=$(lw_origin_url "$TARGET" 2>/dev/null || true)

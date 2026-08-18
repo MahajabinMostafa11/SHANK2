@@ -45,6 +45,9 @@
 #   --github                clone an existing GitHub wiki instead of init'ing locally
 #   --agent "name"          coding assistant running this (e.g. claude-code,
 #                           cursor); recorded in the create log entry's by: line
+#   --mondo "MONDO:ID"      MONDO disease ontology id for this project's
+#                           subject (create mode only); spliced into
+#                           Home_<repo>.md frontmatter as mondo: "<id>"
 #   --stamp-missing-templates
 #                           stamp only the wiki/*.md.template pages that do
 #                           not exist in the wiki yet, then exit — no create,
@@ -61,6 +64,7 @@ REPO_NAME_OVERRIDE=""
 USE_GITHUB=false
 WIKI_AGENT=""
 STAMP_MISSING_ONLY=false
+MONDO_ID=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -69,6 +73,7 @@ while [[ $# -gt 0 ]]; do
         --github) USE_GITHUB=true; shift ;;
         --agent) WIKI_AGENT="$2"; shift 2 ;;
         --stamp-missing-templates) STAMP_MISSING_ONLY=true; shift ;;
+        --mondo) MONDO_ID="$2"; shift 2 ;;
         -h|--help)
             sed -n '2,/^$/p' "$0" | sed 's/^# \?//'
             exit 0
@@ -224,11 +229,21 @@ if [[ "$MODE" == "create" ]]; then
 fi
 
 # --- Write Home_${REPO_NAME}.md (create only — never overwrite) ---
+# MONDO_FM: conditionally spliced mondo: line, only when --mondo was passed.
+# Built as a leading-newline fragment so the heredoc below stays a single
+# frontmatter block with no blank line when MONDO_ID is unset.
+MONDO_FM=""
+if [[ -n "$MONDO_ID" ]]; then
+    MONDO_FM=$'\n'"mondo: \"${MONDO_ID}\""
+fi
+
 if [[ ! -f "$WIKI_DIR/${HOME_NS}.md" ]]; then
 cat > "$WIKI_DIR/${HOME_NS}.md" << HOMEEOF
 ---
 type: index
 up: "[[WIKI-INDEX]]"
+created: "$(date +%Y-%m-%d)"
+timestamp: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"${MONDO_FM}
 ---
 
 # ${PROJECT_NAME}
@@ -274,6 +289,8 @@ cat > "$WIKI_DIR/${INDEX_NS}.md" << INDEXEOF
 ---
 type: index
 up: "[[${HOME_NS}]]"
+created: "$(date +%Y-%m-%d)"
+timestamp: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ---
 
 # Index — ${PROJECT_NAME}
@@ -293,6 +310,8 @@ cat > "$WIKI_DIR/${LOG_NS}.md" << LOGEOF
 ---
 type: index
 up: "[[${HOME_NS}]]"
+created: "$(date +%Y-%m-%d)"
+timestamp: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ---
 
 # Log — ${PROJECT_NAME}
@@ -322,6 +341,8 @@ if [[ "$MODE" == "create" ]]; then
 ---
 type: reference
 up: "[[${HOME_NS}]]"
+created: "$(date +%Y-%m-%d)"
+timestamp: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ---
 
 # Wiki Schema — ${PROJECT_NAME}
